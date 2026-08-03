@@ -30,14 +30,14 @@ Support is limited to the exact version/script mappings in `lib/os.sh`. RHEL, Or
 Before publishing, replace `<github-user>` in `config.sh` and `install.sh` with the repository owner. Then users can run:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/<github-user>/disk-resizer/main/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/aminnajmi/disk-resizer/main/install.sh | sudo bash
 ```
 
 For a custom fork or test checkout, set the repository explicitly:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/<github-user>/disk-resizer/main/install.sh | \
-  sudo DISK_RESIZER_REPOSITORY=https://github.com/acme/disk-resizer.git bash
+curl -fsSL https://raw.githubusercontent.com/aminnajmi/disk-resizer/main/install.sh | \
+  sudo DISK_RESIZER_REPOSITORY=https://github.com/aminnajmi/disk-resizer.git bash
 ```
 
 The installer installs Git when needed, clones into `/opt/disk-resizer`, updates that checkout on later runs, makes shell scripts executable, and executes `launcher.sh`. To run an installed copy again:
