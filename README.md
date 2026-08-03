@@ -27,8 +27,6 @@ Support is limited to the exact version/script mappings in `lib/os.sh`. RHEL, Or
 
 ## Installation and usage
 
-Before publishing, replace `<github-user>` in `config.sh` and `install.sh` with the repository owner. Then users can run:
-
 ```bash
 curl -fsSL https://raw.githubusercontent.com/aminnajmi/disk-resizer/main/install.sh | sudo bash
 ```

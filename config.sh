@@ -8,4 +8,4 @@
 : "${DEBUG:=false}"
 : "${AUTO_INSTALL_PACKAGES:=true}"
 : "${INSTALL_DIR:=/opt/disk-resizer}"
-: "${REPOSITORY_URL:=https://github.com/<github-user>/disk-resizer.git}"
+: "${REPOSITORY_URL:=https://github.com/aminnajmi/disk-resizer.git}"

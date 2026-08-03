@@ -4,7 +4,7 @@ set -Eeuo pipefail
 
 PROJECT_NAME=${PROJECT_NAME:-disk-resizer}
 INSTALL_DIR=${INSTALL_DIR:-/opt/disk-resizer}
-REPOSITORY_URL=${DISK_RESIZER_REPOSITORY:-https://github.com/<github-user>/disk-resizer.git}
+REPOSITORY_URL=${DISK_RESIZER_REPOSITORY:-https://github.com/aminnajmi/disk-resizer.git}
 
 die() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
 command_exists() { command -v "$1" >/dev/null 2>&1; }
@@ -33,7 +33,6 @@ main() {
     elif [[ -e $INSTALL_DIR ]]; then
         die "$INSTALL_DIR exists but is not a Git repository; move it aside before installing."
     else
-        [[ $REPOSITORY_URL != *'<github-user>'* ]] || die 'Set DISK_RESIZER_REPOSITORY to your Git repository URL before using the bootstrap installer.'
         printf 'Cloning %s into %s...\n' "$PROJECT_NAME" "$INSTALL_DIR"
         git clone "$REPOSITORY_URL" "$INSTALL_DIR" || die 'Failed to clone the repository.'
     fi
