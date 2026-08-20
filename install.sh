@@ -1,28 +1,22 @@
 #!/bin/bash
 
 ###############################################################################
-# VPS Disk Increase - All In One
+# VPS DISK INCREASE - ALL IN ONE
 #
 # Supported:
-#   Ubuntu 22
-#   Ubuntu 24
-#   Ubuntu 26
-#   Debian 13
+#   Ubuntu 22 / 24 / 26
+#   Debian 11 / 12 / 13
 #   Fedora 44
 #   CentOS Stream 10
 #   AlmaLinux 10
 #   Rocky Linux 10
 #   Arch Linux
-#
-# WARNING:
-#   This script modifies partition/LVM/filesystem layout.
-#   It does NOT format existing filesystems.
 ###############################################################################
 
 set -Eeuo pipefail
 
 ###############################################################################
-# Globals
+# GLOBALS
 ###############################################################################
 
 OS_ID=""
@@ -41,13 +35,14 @@ NO_RESIZE_NEEDED=0
 
 INITIAL_DISK_BYTES=0
 FINAL_DISK_BYTES=0
+
 INITIAL_DISK=""
 FINAL_DISK=""
 ADDED_DISK=""
 FINAL_ROOT=""
 
 ###############################################################################
-# Logging
+# LOGGING
 ###############################################################################
 
 log() {
@@ -60,7 +55,7 @@ error() {
 }
 
 ###############################################################################
-# Human-readable size
+# HUMAN SIZE
 ###############################################################################
 
 human_size() {
@@ -69,28 +64,26 @@ human_size() {
 
     if (( bytes >= 1099511627776 )); then
         awk -v b="$bytes" 'BEGIN {printf "%.1fT", b/1099511627776}'
-
     elif (( bytes >= 1073741824 )); then
         awk -v b="$bytes" 'BEGIN {printf "%.1fG", b/1073741824}'
-
     elif (( bytes >= 1048576 )); then
         awk -v b="$bytes" 'BEGIN {printf "%.1fM", b/1048576}'
-
     elif (( bytes >= 1024 )); then
         awk -v b="$bytes" 'BEGIN {printf "%.1fK", b/1024}'
-
     else
         echo "${bytes}B"
     fi
 }
 
 ###############################################################################
-# Capture disk information
+# CAPTURE INITIAL DISK
 ###############################################################################
 
 capture_initial_disk() {
 
-    INITIAL_DISK_BYTES=$(lsblk -bdno SIZE "$DISK" 2>/dev/null | head -1 | xargs)
+    INITIAL_DISK_BYTES=$(lsblk -bdno SIZE "$DISK" 2>/dev/null |
+        head -1 |
+        xargs)
 
     [[ "$INITIAL_DISK_BYTES" =~ ^[0-9]+$ ]] || \
         error "Unable to determine initial disk size."
@@ -98,9 +91,15 @@ capture_initial_disk() {
     INITIAL_DISK=$(human_size "$INITIAL_DISK_BYTES")
 }
 
+###############################################################################
+# CAPTURE FINAL DISK
+###############################################################################
+
 capture_final_disk() {
 
-    FINAL_DISK_BYTES=$(lsblk -bdno SIZE "$DISK" 2>/dev/null | head -1 | xargs)
+    FINAL_DISK_BYTES=$(lsblk -bdno SIZE "$DISK" 2>/dev/null |
+        head -1 |
+        xargs)
 
     [[ "$FINAL_DISK_BYTES" =~ ^[0-9]+$ ]] || \
         error "Unable to determine final disk size."
@@ -108,7 +107,8 @@ capture_final_disk() {
     FINAL_DISK=$(human_size "$FINAL_DISK_BYTES")
 
     if (( FINAL_DISK_BYTES > INITIAL_DISK_BYTES )); then
-        ADDED_DISK=$(human_size $((FINAL_DISK_BYTES - INITIAL_DISK_BYTES)))
+        ADDED_DISK=$(human_size \
+            $((FINAL_DISK_BYTES - INITIAL_DISK_BYTES)))
     else
         ADDED_DISK="0G"
     fi
@@ -119,7 +119,7 @@ capture_final_disk() {
 }
 
 ###############################################################################
-# Final results
+# FINAL SUCCESS
 ###############################################################################
 
 final_success() {
@@ -140,6 +140,10 @@ final_success() {
     echo
 }
 
+###############################################################################
+# FINAL NO RESIZE
+###############################################################################
+
 final_no_resize() {
 
     capture_final_disk
@@ -157,29 +161,24 @@ final_no_resize() {
     echo
 }
 
+###############################################################################
+# FINAL FAILURE
+###############################################################################
+
 final_failure() {
-
-    local current_disk="Unknown"
-
-    if [[ -n "$DISK" ]] && [[ -b "$DISK" ]]; then
-        current_disk=$(lsblk -bdno SIZE "$DISK" 2>/dev/null |
-            head -1 |
-            awk '{printf "%.1fG", $1/1073741824}')
-    fi
 
     echo
     echo "========================================="
     echo "          STORAGE RESIZE FAILED"
     echo "========================================="
     echo "OS        : ${OS_NAME:-Unknown}"
-    echo "Disk      : $current_disk"
     echo "Status    : Resize could not be completed"
     echo "========================================="
     echo
 }
 
 ###############################################################################
-# Error handler
+# ERROR TRAP
 ###############################################################################
 
 trap '
@@ -189,7 +188,7 @@ trap '
 ' ERR
 
 ###############################################################################
-# Root check
+# ROOT CHECK
 ###############################################################################
 
 check_root() {
@@ -200,7 +199,7 @@ check_root() {
 }
 
 ###############################################################################
-# OS detection
+# OS DETECTION
 ###############################################################################
 
 detect_os() {
@@ -218,32 +217,37 @@ detect_os() {
         ubuntu)
 
             case "$OS_VERSION" in
-
                 22.04)
                     OS_NAME="Ubuntu 22"
                     ;;
-
                 24.04)
                     OS_NAME="Ubuntu 24"
                     ;;
-
                 26.04)
                     OS_NAME="Ubuntu 26"
                     ;;
-
                 *)
                     error "Unsupported Ubuntu version."
                     ;;
-
             esac
             ;;
 
         debian)
 
-            [[ "$OS_VERSION" == "13" ]] || \
-                error "Unsupported Debian version."
-
-            OS_NAME="Debian 13"
+            case "$OS_VERSION" in
+                11)
+                    OS_NAME="Debian 11"
+                    ;;
+                12)
+                    OS_NAME="Debian 12"
+                    ;;
+                13)
+                    OS_NAME="Debian 13"
+                    ;;
+                *)
+                    error "Unsupported Debian version."
+                    ;;
+            esac
             ;;
 
         fedora)
@@ -285,7 +289,7 @@ detect_os() {
 
         *)
 
-            error "Unsupported operating system: $OS_ID"
+            error "Unsupported operating system."
             ;;
 
     esac
@@ -294,7 +298,7 @@ detect_os() {
 }
 
 ###############################################################################
-# Command check
+# REQUIRED COMMAND
 ###############################################################################
 
 require_command() {
@@ -304,26 +308,41 @@ require_command() {
 }
 
 ###############################################################################
-# APT requirements
+# APT REQUIREMENTS
 ###############################################################################
 
 install_apt_requirements() {
 
-    if ! command -v growpart >/dev/null 2>&1; then
+    local missing=0
+
+    command -v growpart >/dev/null 2>&1 || missing=1
+    command -v pvresize >/dev/null 2>&1 || missing=1
+    command -v lvextend >/dev/null 2>&1 || missing=1
+    command -v partprobe >/dev/null 2>&1 || missing=1
+
+    if (( missing == 1 )); then
+
+        log "Installing required packages..."
 
         export DEBIAN_FRONTEND=noninteractive
 
         apt-get update -qq >/dev/null 2>&1
 
-        apt-get install -y cloud-guest-utils >/dev/null 2>&1
+        apt-get install -y \
+            cloud-guest-utils \
+            lvm2 \
+            parted \
+            >/dev/null 2>&1
     fi
 
     require_command growpart
+    require_command pvresize
+    require_command lvextend
     require_command partprobe
 }
 
 ###############################################################################
-# DNF requirements
+# DNF REQUIREMENTS
 ###############################################################################
 
 install_dnf_requirements() {
@@ -336,13 +355,25 @@ install_dnf_requirements() {
         util-linux
     )
 
+    local missing=0
+
     for package in "${packages[@]}"; do
 
         if ! rpm -q "$package" >/dev/null 2>&1; then
-            dnf install -y "$package" >/dev/null 2>&1
+            missing=1
+            break
         fi
 
     done
+
+    if (( missing == 1 )); then
+
+        log "Installing required packages..."
+
+        dnf install -y \
+            "${packages[@]}" \
+            >/dev/null 2>&1
+    fi
 
     require_command growpart
     require_command pvresize
@@ -351,15 +382,34 @@ install_dnf_requirements() {
 }
 
 ###############################################################################
-# Arch requirements
+# ARCH REQUIREMENTS
 ###############################################################################
 
 install_arch_requirements() {
 
-    if ! command -v growpart >/dev/null 2>&1; then
-        error "growpart is not installed. Install cloud-utils first."
+    local missing=0
+
+    command -v growpart >/dev/null 2>&1 || missing=1
+    command -v pvresize >/dev/null 2>&1 || missing=1
+    command -v lvextend >/dev/null 2>&1 || missing=1
+    command -v resize2fs >/dev/null 2>&1 || missing=1
+    command -v partprobe >/dev/null 2>&1 || missing=1
+
+    if (( missing == 1 )); then
+
+        log "Installing required packages..."
+
+        pacman -Sy --noconfirm archlinux-keyring \
+            >/dev/null 2>&1 || true
+
+        pacman -S --noconfirm \
+            cloud-guest-utils \
+            lvm2 \
+            parted \
+            >/dev/null 2>&1
     fi
 
+    require_command growpart
     require_command pvresize
     require_command lvextend
     require_command resize2fs
@@ -367,7 +417,7 @@ install_arch_requirements() {
 }
 
 ###############################################################################
-# Rescan disk
+# RESCAN DISK
 ###############################################################################
 
 rescan_disk() {
@@ -388,7 +438,7 @@ rescan_disk() {
 }
 
 ###############################################################################
-# Detect LVM
+# DETECT LVM
 ###############################################################################
 
 detect_lvm() {
@@ -428,6 +478,10 @@ detect_lvm() {
 
         PARTITION="${BASH_REMATCH[1]}"
 
+    elif [[ "$device" =~ ^mmcblk[0-9]+p([0-9]+)$ ]]; then
+
+        PARTITION="${BASH_REMATCH[1]}"
+
     elif [[ "$device" =~ ^[a-z]+([0-9]+)$ ]]; then
 
         PARTITION="${BASH_REMATCH[1]}"
@@ -440,7 +494,7 @@ detect_lvm() {
 }
 
 ###############################################################################
-# Check additional storage
+# CHECK ADDITIONAL SPACE
 ###############################################################################
 
 has_additional_space() {
@@ -451,15 +505,11 @@ has_additional_space() {
     disk_size=$(blockdev --getsize64 "$DISK")
     partition_size=$(blockdev --getsize64 "$PV")
 
-    if (( disk_size > partition_size )); then
-        return 0
-    fi
-
-    return 1
+    (( disk_size > partition_size ))
 }
 
 ###############################################################################
-# Grow partition
+# GROW PARTITION
 ###############################################################################
 
 grow_partition() {
@@ -476,7 +526,6 @@ grow_partition() {
     difference=$((disk_sectors - partition_sectors))
 
     if (( difference <= 2048 )); then
-
         NO_RESIZE_NEEDED=1
         return 0
     fi
@@ -488,24 +537,22 @@ grow_partition() {
     fi
 
     if echo "$output" | grep -q "NOCHANGE"; then
-
         NO_RESIZE_NEEDED=1
         return 0
     fi
 
     if (( status != 0 )); then
+        echo "$output" >&2
         error "Unable to extend partition."
     fi
 
     partprobe "$DISK" >/dev/null 2>&1 || true
-
     udevadm settle >/dev/null 2>&1 || true
-
     sleep 2
 }
 
 ###############################################################################
-# Resize PV
+# RESIZE PV
 ###############################################################################
 
 resize_pv() {
@@ -514,7 +561,7 @@ resize_pv() {
 }
 
 ###############################################################################
-# Extend root LV
+# EXTEND ROOT LV
 ###############################################################################
 
 extend_root_lv() {
@@ -535,7 +582,7 @@ extend_root_lv() {
 }
 
 ###############################################################################
-# Grow EXT4
+# EXT4
 ###############################################################################
 
 grow_ext4() {
@@ -544,7 +591,7 @@ grow_ext4() {
 }
 
 ###############################################################################
-# Grow XFS
+# XFS
 ###############################################################################
 
 grow_xfs() {
@@ -553,7 +600,7 @@ grow_xfs() {
 }
 
 ###############################################################################
-# Ubuntu 22
+# UBUNTU 22
 ###############################################################################
 
 resize_ubuntu22() {
@@ -574,11 +621,17 @@ resize_ubuntu22() {
     device=$(basename "$ROOT_SOURCE")
 
     if [[ "$device" =~ ^nvme[0-9]+n[0-9]+p([0-9]+)$ ]]; then
+
         PARTITION="${BASH_REMATCH[1]}"
+
     elif [[ "$device" =~ ^[a-z]+([0-9]+)$ ]]; then
+
         PARTITION="${BASH_REMATCH[1]}"
+
     else
+
         error "Unable to determine partition."
+
     fi
 
     capture_initial_disk
@@ -592,19 +645,21 @@ resize_ubuntu22() {
     partition_size=$(blockdev --getsize64 "$ROOT_SOURCE")
 
     if (( disk_size <= partition_size )); then
+
         final_no_resize
         return 0
+
     fi
 
     if ! growpart "$DISK" "$PARTITION" >/dev/null 2>&1; then
+
         final_no_resize
         return 0
+
     fi
 
     partprobe "$DISK" >/dev/null 2>&1 || true
-
     udevadm settle >/dev/null 2>&1 || true
-
     sleep 2
 
     resize2fs "$ROOT_SOURCE" >/dev/null 2>&1
@@ -613,7 +668,7 @@ resize_ubuntu22() {
 }
 
 ###############################################################################
-# Ubuntu 24 / 26
+# UBUNTU 24 / 26
 ###############################################################################
 
 resize_ubuntu_lvm() {
@@ -651,22 +706,29 @@ resize_ubuntu_lvm() {
 }
 
 ###############################################################################
-# Debian 13
+# DEBIAN 11 / 12 / 13
+#
+# Debian MBR:
+#
+# /dev/sda1 = boot
+# /dev/sda2 = extended
+# /dev/sda5 = LVM
 ###############################################################################
 
-resize_debian13() {
+resize_debian_generic() {
 
     detect_lvm
 
     [[ "$FILESYSTEM" == "ext4" ]] || \
-        error "Unexpected filesystem."
-
-    [[ "$PARTITION" == "5" ]] || \
-        error "Unexpected LVM partition."
+        error "Unexpected Debian root filesystem."
 
     capture_initial_disk
 
     rescan_disk
+
+    ###########################################################################
+    # No additional storage
+    ###########################################################################
 
     if ! has_additional_space; then
 
@@ -675,31 +737,172 @@ resize_debian13() {
 
     fi
 
-    growpart "$DISK" 2 >/dev/null 2>&1
+    local table_type
 
-    partprobe "$DISK" >/dev/null 2>&1 || true
+    table_type=$(parted -ms "$DISK" print 2>/dev/null |
+        awk -F: 'NR==2 {print $6}')
 
-    udevadm settle >/dev/null 2>&1 || true
+    ###########################################################################
+    # MBR / DOS
+    ###########################################################################
 
-    sleep 2
+    if [[ "$table_type" == "msdos" ]]; then
 
-    growpart "$DISK" 5 >/dev/null 2>&1
+        #######################################################################
+        # Logical partition
+        #######################################################################
 
-    partprobe "$DISK" >/dev/null 2>&1 || true
+        if (( PARTITION >= 5 )); then
 
-    udevadm settle >/dev/null 2>&1 || true
+            local extended_output=""
+            local logical_output=""
 
-    sleep 2
+            ###################################################################
+            # Grow extended partition FIRST
+            ###################################################################
+
+            extended_output=$(growpart "$DISK" 2 2>&1) || true
+
+            if echo "$extended_output" | grep -q "NOCHANGE"; then
+
+                final_no_resize
+                return 0
+
+            fi
+
+            if ! echo "$extended_output" | grep -q "CHANGED"; then
+
+                echo "$extended_output" >&2
+                error "Unable to extend Debian extended partition."
+
+            fi
+
+            partprobe "$DISK" >/dev/null 2>&1 || true
+            udevadm settle >/dev/null 2>&1 || true
+            sleep 2
+
+            ###################################################################
+            # Grow logical LVM partition
+            ###################################################################
+
+            logical_output=$(growpart \
+                "$DISK" \
+                "$PARTITION" \
+                2>&1) || true
+
+            if echo "$logical_output" | grep -q "NOCHANGE"; then
+
+                final_no_resize
+                return 0
+
+            fi
+
+            if ! echo "$logical_output" | grep -q "CHANGED"; then
+
+                echo "$logical_output" >&2
+                error "Unable to extend Debian LVM partition."
+
+            fi
+
+            partprobe "$DISK" >/dev/null 2>&1 || true
+            udevadm settle >/dev/null 2>&1 || true
+            sleep 2
+
+        #######################################################################
+        # Primary LVM partition
+        #######################################################################
+
+        else
+
+            local primary_output=""
+
+            primary_output=$(growpart \
+                "$DISK" \
+                "$PARTITION" \
+                2>&1) || true
+
+            if echo "$primary_output" | grep -q "NOCHANGE"; then
+
+                final_no_resize
+                return 0
+
+            fi
+
+            if ! echo "$primary_output" | grep -q "CHANGED"; then
+
+                echo "$primary_output" >&2
+                error "Unable to extend Debian LVM partition."
+
+            fi
+
+            partprobe "$DISK" >/dev/null 2>&1 || true
+            udevadm settle >/dev/null 2>&1 || true
+            sleep 2
+
+        fi
+
+    ###########################################################################
+    # GPT
+    ###########################################################################
+
+    elif [[ "$table_type" == "gpt" ]]; then
+
+        local gpt_output=""
+
+        gpt_output=$(growpart \
+            "$DISK" \
+            "$PARTITION" \
+            2>&1) || true
+
+        if echo "$gpt_output" | grep -q "NOCHANGE"; then
+
+            final_no_resize
+            return 0
+
+        fi
+
+        if ! echo "$gpt_output" | grep -q "CHANGED"; then
+
+            echo "$gpt_output" >&2
+            error "Unable to extend Debian LVM partition."
+
+        fi
+
+        partprobe "$DISK" >/dev/null 2>&1 || true
+        udevadm settle >/dev/null 2>&1 || true
+        sleep 2
+
+    else
+
+        error "Unsupported Debian partition table."
+
+    fi
+
+    ###########################################################################
+    # LVM
+    ###########################################################################
 
     resize_pv
     extend_root_lv
+
+    ###########################################################################
+    # EXT4
+    ###########################################################################
+
     grow_ext4
 
     final_success
 }
 
 ###############################################################################
-# Fedora / CentOS / AlmaLinux / Rocky
+# FEDORA 44 / CENTOS STREAM 10 / ALMALINUX 10 / ROCKY LINUX 10
+#
+# VMware layout:
+#
+# sda1 = EFI
+# sda2 = /boot
+# sda3 = LVM
+# sda4 = 512-byte placeholder
 ###############################################################################
 
 resize_rhel_xfs() {
@@ -709,21 +912,75 @@ resize_rhel_xfs() {
     [[ "$FILESYSTEM" == "xfs" ]] || \
         error "Unexpected filesystem."
 
-    [[ "$PARTITION" == "3" ]] || \
-        error "Unexpected LVM partition."
-
     capture_initial_disk
 
     rescan_disk
 
     ###########################################################################
-    # Remove only verified 512-byte placeholder partition
+    # Determine actual disk size
     ###########################################################################
 
-    local placeholder="${DISK}4"
+    local disk_sectors
+    local pv_end_sector
+    local available_sectors
+    local minimum_growth
+
+    disk_sectors=$(blockdev --getsz "$DISK")
+
+    ###########################################################################
+    # Get actual END sector of LVM partition
+    ###########################################################################
+
+    pv_end_sector=$(parted -ms "$DISK" unit s print 2>/dev/null |
+        awk -F: -v p="$PARTITION" '
+            $1 == p {
+                gsub("s","",$3)
+                print $3
+                exit
+            }
+        ')
+
+    if [[ -z "$pv_end_sector" ]]; then
+
+        error "Unable to determine LVM partition boundary."
+
+    fi
+
+    ###########################################################################
+    # Calculate real unused space
+    ###########################################################################
+
+    available_sectors=$((disk_sectors - pv_end_sector - 1))
+
+    ###########################################################################
+    # Ignore alignment / GPT overhead
+    ###########################################################################
+
+    minimum_growth=2048
+
+    if (( available_sectors <= minimum_growth )); then
+
+        final_no_resize
+        return 0
+
+    fi
+
+    log "Additional storage detected."
+
+    ###########################################################################
+    # Remove ONLY known 512-byte placeholder partition 4
+    ###########################################################################
+
+    local placeholder
 
     if [[ "$DISK" =~ nvme|mmcblk ]]; then
+
         placeholder="${DISK}p4"
+
+    else
+
+        placeholder="${DISK}4"
+
     fi
 
     if [[ -b "$placeholder" ]]; then
@@ -734,10 +991,9 @@ resize_rhel_xfs() {
 
         if (( placeholder_size <= 4096 )); then
 
-            parted -s "$DISK" rm 4 >/dev/null 2>&1
+            parted -s "$DISK" rm 4 >/dev/null 2>&1 || true
 
             partprobe "$DISK" >/dev/null 2>&1 || true
-
             udevadm settle >/dev/null 2>&1 || true
 
             sleep 2
@@ -747,33 +1003,85 @@ resize_rhel_xfs() {
             error "Unexpected partition 4 detected."
 
         fi
+
     fi
 
-    if ! has_additional_space; then
+    ###########################################################################
+    # Grow LVM partition
+    ###########################################################################
+
+    local output=""
+    local status=0
+
+    if output=$(growpart "$DISK" "$PARTITION" 2>&1); then
+
+        status=0
+
+    else
+
+        status=$?
+
+    fi
+
+    ###########################################################################
+    # No actual growth
+    ###########################################################################
+
+    if echo "$output" | grep -q "NOCHANGE"; then
 
         final_no_resize
         return 0
 
     fi
 
-    grow_partition
+    ###########################################################################
+    # Real failure
+    ###########################################################################
 
-    if [[ "$NO_RESIZE_NEEDED" == "1" ]]; then
+    if (( status != 0 )); then
 
-        final_no_resize
-        return 0
+        echo "$output" >&2
+
+        error "Unable to extend LVM partition."
 
     fi
+
+    ###########################################################################
+    # Reload partition table
+    ###########################################################################
+
+    partprobe "$DISK" >/dev/null 2>&1 || true
+    udevadm settle >/dev/null 2>&1 || true
+
+    sleep 2
+
+    ###########################################################################
+    # Resize PV
+    ###########################################################################
 
     resize_pv
+
+    ###########################################################################
+    # Extend LV
+    ###########################################################################
+
     extend_root_lv
+
+    ###########################################################################
+    # Grow XFS
+    ###########################################################################
+
     grow_xfs
+
+    ###########################################################################
+    # Final
+    ###########################################################################
 
     final_success
 }
 
 ###############################################################################
-# Arch Linux
+# ARCH LINUX
 ###############################################################################
 
 resize_arch() {
@@ -811,7 +1119,7 @@ resize_arch() {
 }
 
 ###############################################################################
-# Main
+# MAIN
 ###############################################################################
 
 main() {
@@ -821,6 +1129,10 @@ main() {
     detect_os
 
     case "$OS_ID" in
+
+        #######################################################################
+        # UBUNTU
+        #######################################################################
 
         ubuntu)
 
@@ -844,30 +1156,67 @@ main() {
 
             ;;
 
+        #######################################################################
+        # DEBIAN
+        #######################################################################
+
         debian)
 
             install_apt_requirements
-            resize_debian13
+
+            case "$OS_VERSION" in
+
+                11|12|13)
+                    resize_debian_generic
+                    ;;
+
+                *)
+                    error "Unsupported Debian version."
+                    ;;
+
+            esac
+
             ;;
+
+        #######################################################################
+        # RHEL FAMILY
+        #######################################################################
 
         fedora|centos|almalinux|rocky)
 
             install_dnf_requirements
+
             resize_rhel_xfs
+
             ;;
+
+        #######################################################################
+        # ARCH
+        #######################################################################
 
         arch)
 
             install_arch_requirements
+
             resize_arch
+
             ;;
+
+        #######################################################################
+        # UNSUPPORTED
+        #######################################################################
 
         *)
 
             error "Unsupported operating system."
+
             ;;
 
     esac
 }
+
+###############################################################################
+# RUN
+###############################################################################
 
 main "$@"
